@@ -19,6 +19,14 @@ export default function RecipeCreate() {
   const [ingredients, setIngredients] = useState(['']);
   const [instructions, setInstructions] = useState('');
   const [error, setError] = useState('');
+  const [sessionError, setSessionError] = useState(false);
+
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setSessionError(true);
+    }
+  }, []);
 
   const handleAddIngredient = () => {
     setIngredients([...ingredients, '']);
@@ -66,6 +74,11 @@ export default function RecipeCreate() {
           <Typography variant="h4" component="h1" gutterBottom align="center">
             Crear Nueva Receta
           </Typography>
+          {sessionError && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              La sesión debe estar iniciada para crear una receta
+            </Alert>
+          )}
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <form onSubmit={handleSubmit}>
             <TextField
@@ -75,6 +88,7 @@ export default function RecipeCreate() {
               onChange={(e) => setTitle(e.target.value)}
               margin="normal"
               required
+              disabled={sessionError}
             />
             
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
@@ -88,12 +102,14 @@ export default function RecipeCreate() {
                   value={ingredient}
                   onChange={(e) => handleIngredientChange(index, e.target.value)}
                   margin="normal"
+                  disabled={sessionError}
                 />
                 {ingredients.length > 1 && (
                   <IconButton
                     color="error"
                     onClick={() => handleRemoveIngredient(index)}
                     sx={{ mt: 2 }}
+                    disabled={sessionError}
                   >
                     <RemoveIcon />
                   </IconButton>
@@ -103,6 +119,7 @@ export default function RecipeCreate() {
                     color="primary"
                     onClick={handleAddIngredient}
                     sx={{ mt: 2 }}
+                    disabled={sessionError}
                   >
                     <AddIcon />
                   </IconButton>
@@ -119,6 +136,7 @@ export default function RecipeCreate() {
               onChange={(e) => setInstructions(e.target.value)}
               margin="normal"
               required
+              disabled={sessionError}
             />
 
             <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
@@ -127,6 +145,7 @@ export default function RecipeCreate() {
                 fullWidth
                 variant="contained"
                 color="primary"
+                disabled={sessionError}
               >
                 Crear Receta
               </Button>
@@ -143,4 +162,4 @@ export default function RecipeCreate() {
       </Box>
     </Container>
   );
-} 
+}
