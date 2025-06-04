@@ -12,7 +12,7 @@ import {
   TextField,
   IconButton,
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, Favorite, FavoriteBorder } from '@mui/icons-material';
 import Slider from 'react-slick';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -40,21 +40,29 @@ export default function Home() {
   const { user } = useAuth();
 
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
+  const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [openRecipe, setOpenRecipe] = useState<Recipe | null>(null);
-  const [recentRecipeIds, setRecentRecipeIds] = useState<string[]>([]);
+  const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
 
-  // Cargar recetas vistas desde localStorage al iniciar
+  // Cargar recetas recientes desde Redis al iniciar
   useEffect(() => {
-    const stored = localStorage.getItem('recentRecipeIds');
-    if (stored) setRecentRecipeIds(JSON.parse(stored));
-  }, []);
+    const fetchRecent = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const res = await axios.get('http://localhost:3001/api/recent-recipes', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.returnCode === 'SUCCESS') setRecentRecipes(res.data.data);
+      } catch (err) {
+        // Manejar error
+      }
+    };
+    if (user) fetchRecent();
+  }, [user]);
 
-  // Guardar recetas vistas en localStorage cuando cambian
-  useEffect(() => {
-    localStorage.setItem('recentRecipeIds', JSON.stringify(recentRecipeIds));
-  }, [recentRecipeIds]);
-
+  // Cargar todas las recetas o buscar
   useEffect(() => {
     if (!user) return;
     const fetchRecipes = async () => {
@@ -70,14 +78,45 @@ export default function Home() {
     fetchRecipes();
   }, [user]);
 
-  // Cuando se hace click en "Ver más", agregar la receta a recientes
-  const handleOpenRecipe = (recipe: Recipe) => {
+  // Cargar favoritos al iniciar
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const res = await axios.get('http://localhost:3001/api/favorite-recipes', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.returnCode === 'SUCCESS') setFavoriteRecipes(res.data.data);
+      } catch (err) {}
+    };
+    if (user) fetchFavorites();
+  }, [user]);
+
+  // Handler para abrir receta de comunidad (fetch por ID y actualiza recientes en Redis)
+  const handleOpenRecipeFromCommunity = async (recipeId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await axios.get(`http://localhost:3001/api/recipes/${recipeId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.returnCode === 'SUCCESS') {
+        setOpenRecipe(res.data.data);
+        // Actualizar recientes desde Redis
+        const recentRes = await axios.get('http://localhost:3001/api/recent-recipes', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (recentRes.data.returnCode === 'SUCCESS') setRecentRecipes(recentRes.data.data);
+      }
+    } catch (err) {
+      // Manejar error
+    }
+  };
+
+  // Handler para abrir receta de recientes (sin fetch extra)
+  const handleOpenRecipeFromRecent = (recipe: Recipe) => {
     setOpenRecipe(recipe);
-    setRecentRecipeIds((prev) => {
-      // Evitar duplicados y poner la receta al principio
-      const filtered = prev.filter(id => id !== recipe._id);
-      return [recipe._id, ...filtered].slice(0, 10); // Máximo 10 recientes
-    });
   };
 
   const handleDelete = async (recipeId: string) => {
@@ -87,20 +126,28 @@ export default function Home() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAllRecipes(allRecipes.filter(recipe => recipe._id !== recipeId));
-      setRecentRecipeIds(recentRecipeIds.filter(id => id !== recipeId));
+      setRecentRecipes(recentRecipes.filter(recipe => recipe._id !== recipeId));
     } catch (error) {
       console.error('Error deleting recipe:', error);
     }
   };
 
+  const handleToggleFavorite = async (recipeId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await axios.post('http://localhost:3001/api/favorite-recipes', { recipeId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.returnCode === 'SUCCESS') setFavoriteRecipes(res.data.data);
+    } catch (err) {}
+  };
+
+  const isFavorite = (id: string) => favoriteRecipes.some(r => r._id === id);
+
   const filteredRecipes = allRecipes.filter(recipe =>
     recipe.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // Solo mostrar las recetas vistas en el carrusel de recientes
-  const recentRecipes = recentRecipeIds
-    .map(id => allRecipes.find(r => r._id === id))
-    .filter((r): r is Recipe => !!r);
 
   // Renderizado condicional
   if (!user) {
@@ -183,13 +230,30 @@ export default function Home() {
                       Ingredientes: {recipe.ingredients.join(', ')}
                     </Typography>
                   </CardContent>
-                  <CardActions>
+                  <CardActions sx={{ justifyContent: 'flex-end' }}>
+                    <IconButton onClick={() => handleToggleFavorite(recipe._id)}>
+                      {isFavorite(recipe._id) ? (
+                        <Favorite sx={{ color: 'red' }} />
+                      ) : (
+                        <FavoriteBorder />
+                      )}
+                    </IconButton>
                     <Button
                       size="small"
-                      onClick={() => handleOpenRecipe(recipe)}
+                      onClick={() => handleOpenRecipeFromRecent(recipe)}
                     >
                       Ver más
                     </Button>
+                    {recipe.ownerId === user?.id && (
+                      <>
+                        <IconButton onClick={() => navigate(`/recipe/edit/${recipe._id}`)} color="primary">
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={() => handleDelete(recipe._id)} color="error">
+                          <DeleteIcon />
+                        </IconButton>
+                      </>
+                    )}
                   </CardActions>
                 </Card>
               </div>
@@ -264,25 +328,26 @@ export default function Home() {
                   Ingredientes: {recipe.ingredients.join(', ')}
                 </Typography>
               </CardContent>
-              <CardActions>
+              <CardActions sx={{ justifyContent: 'flex-end' }}>
+                <IconButton onClick={() => handleToggleFavorite(recipe._id)}>
+                  {isFavorite(recipe._id) ? (
+                    <Favorite sx={{ color: 'red' }} />
+                  ) : (
+                    <FavoriteBorder />
+                  )}
+                </IconButton>
                 <Button
                   size="small"
-                  onClick={() => handleOpenRecipe(recipe)}
+                  onClick={() => handleOpenRecipeFromCommunity(recipe._id)}
                 >
                   Ver más
                 </Button>
                 {recipe.ownerId === user?.id && (
                   <>
-                    <IconButton
-                      onClick={() => navigate(`/recipe/edit/${recipe._id}`)}
-                      color="primary"
-                    >
+                    <IconButton onClick={() => navigate(`/recipe/edit/${recipe._id}`)} color="primary">
                       <EditIcon />
                     </IconButton>
-                    <IconButton
-                      onClick={() => handleDelete(recipe._id)}
-                      color="error"
-                    >
+                    <IconButton onClick={() => handleDelete(recipe._id)} color="error">
                       <DeleteIcon />
                     </IconButton>
                   </>

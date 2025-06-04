@@ -10,6 +10,7 @@ import {
   Alert,
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -25,6 +26,19 @@ export default function Login() {
       navigate('/home');
     } catch (err) {
       setError('Error al iniciar sesión. Por favor, verifica tus credenciales.');
+    }
+  };
+
+  const handleRemoveRecent = async (recipeId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      await axios.delete(`http://localhost:3001/api/recent-recipes?id=${recipeId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // setRecentRecipes(recentRecipes.filter(r => r._id !== recipeId));
+    } catch (err) {
+      // Manejar error
     }
   };
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -6,15 +6,30 @@ import {
   Typography,
   Button,
   Box,
+  Dialog,
+  DialogTitle,
+  DialogActions,
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, logoutWithSessionDelete } = useAuth();
+  const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
 
   const handleLogout = () => {
+    setOpenLogoutDialog(true);
+  };
+
+  const handleLogoutYes = () => {
+    setOpenLogoutDialog(false);
     logout();
+    navigate('/login');
+  };
+
+  const handleLogoutNo = async () => {
+    setOpenLogoutDialog(false);
+    await logoutWithSessionDelete();
     navigate('/login');
   };
 
@@ -33,6 +48,9 @@ export default function Navbar() {
               <Button color="inherit" onClick={() => navigate('/recipe/create')}>
                 Nueva Receta
               </Button>
+              <Button color="inherit" onClick={() => navigate('/favoritos')}>
+                Favoritos
+              </Button>
               <Button color="inherit" onClick={handleLogout}>
                 Cerrar Sesión
               </Button>
@@ -49,6 +67,17 @@ export default function Navbar() {
           )}
         </Box>
       </Toolbar>
+      <Dialog open={openLogoutDialog} onClose={() => setOpenLogoutDialog(false)}>
+        <DialogTitle>¿Desea guardar sus recetas favoritas?</DialogTitle>
+        <DialogActions>
+          <Button onClick={handleLogoutYes} color="primary">
+            Sí
+          </Button>
+          <Button onClick={handleLogoutNo} color="error">
+            No
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AppBar>
   );
 } 
