@@ -14,22 +14,22 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, logoutWithSessionDelete } = useAuth();
+  const { isAuthenticated, logout, logoutAndSaveFavorites } = useAuth();
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
 
   const handleLogout = () => {
     setOpenLogoutDialog(true);
   };
 
-  const handleLogoutYes = () => {
+  const handleLogoutYes = async () => {
     setOpenLogoutDialog(false);
-    logout();
+    await logoutAndSaveFavorites(); // <-- Cambiado aquí
     navigate('/login');
   };
 
-  const handleLogoutNo = async () => {
+  const handleLogoutNo = () => {
     setOpenLogoutDialog(false);
-    await logoutWithSessionDelete();
+    logout();
     navigate('/login');
   };
 
@@ -80,4 +80,4 @@ export default function Navbar() {
       </Dialog>
     </AppBar>
   );
-} 
+}

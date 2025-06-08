@@ -31,7 +31,7 @@ interface Recipe {
 }
 
 export default function Favoritos() {
-  const { user, logout, logoutWithSessionDelete } = useAuth();
+  const { user, logout, logoutAndSaveFavorites } = useAuth(); // <-- Cambiado aquí
   const navigate = useNavigate();
   const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
   const [openRecipe, setOpenRecipe] = useState<Recipe | null>(null);
@@ -72,14 +72,15 @@ export default function Favoritos() {
     setOpenLogoutDialog(true);
   };
 
-  const handleLogoutYes = () => {
+  const handleLogoutYes = async () => { // <-- Cambiado aquí
     setOpenLogoutDialog(false);
-    logout();
+    await logoutAndSaveFavorites();
+    navigate('/login');
   };
 
-  const handleLogoutNo = async () => {
+  const handleLogoutNo = () => { // <-- Cambiado aquí
     setOpenLogoutDialog(false);
-    await logoutWithSessionDelete();
+    logout();
     navigate('/login');
   };
 
@@ -194,4 +195,4 @@ export default function Favoritos() {
       </Dialog>
     </Container>
   );
-} 
+}
