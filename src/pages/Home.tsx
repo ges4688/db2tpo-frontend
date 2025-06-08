@@ -13,7 +13,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Favorite, FavoriteBorder } from '@mui/icons-material';
-import Slider from 'react-slick';
+
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import Dialog from '@mui/material/Dialog';
@@ -183,84 +183,11 @@ export default function Home() {
     );
   }
 
-  const sliderSettings = {
-    dots: true,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    autoplay: true,
-    autoplaySpeed: 3000,
-  };
+
 
   return (
     <Container>
-      {/* Recent Recipes Carousel */}
-      {recentRecipes.length > 0 && (
-        <Box sx={{ mb: 6 }}>
-          <Typography variant="h4" gutterBottom>
-            Recetas Recientes
-          </Typography>
-          <Slider {...sliderSettings}>
-            {recentRecipes.map((recipe) => (
-              <div key={recipe._id}>
-                <Card sx={{ m: 1 }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="h6">{recipe.title}</Typography>
-                      {recipe.ownerId === user?.id ? (
-                        <Chip
-                          icon={<PersonIcon />}
-                          label="Tu receta"
-                          color="primary"
-                          size="small"
-                          sx={{ ml: 1 }}
-                        />
-                      ) : (
-                        <Chip
-                          icon={<GroupIcon />}
-                          label="Comunidad"
-                          color="default"
-                          size="small"
-                          sx={{ ml: 1 }}
-                        />
-                      )}
-                    </Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Ingredientes: {recipe.ingredients.join(', ')}
-                    </Typography>
-                  </CardContent>
-                  <CardActions sx={{ justifyContent: 'flex-end' }}>
-                    <IconButton onClick={() => handleToggleFavorite(recipe._id)}>
-                      {isFavorite(recipe._id) ? (
-                        <Favorite sx={{ color: 'red' }} />
-                      ) : (
-                        <FavoriteBorder />
-                      )}
-                    </IconButton>
-                    <Button
-                      size="small"
-                      onClick={() => handleOpenRecipeFromRecent(recipe)}
-                    >
-                      Ver más
-                    </Button>
-                    {recipe.ownerId === user?.id && (
-                      <>
-                        <IconButton onClick={() => navigate(`/recipe/edit/${recipe._id}`)} color="primary">
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton onClick={() => handleDelete(recipe._id)} color="error">
-                          <DeleteIcon />
-                        </IconButton>
-                      </>
-                    )}
-                  </CardActions>
-                </Card>
-              </div>
-            ))}
-          </Slider>
-        </Box>
-      )}
+
 
       {/* Popup para ver detalles de la receta */}
       <Dialog open={!!openRecipe} onClose={() => setOpenRecipe(null)} maxWidth="sm" fullWidth>
