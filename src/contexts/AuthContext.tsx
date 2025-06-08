@@ -11,6 +11,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  logoutAndSaveFavorites: () => Promise<void>; // <-- Cambiado aquí
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -80,8 +81,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const logoutAndSaveFavorites = async () => { // <-- Cambiado aquí
+    try {
+      await axios.post('http://localhost:3001/api/auth/logout', {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+    } catch (err) {
+      // Manejar error si quieres
+    }
+    logout();
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, register, logout }}>
+    <AuthContext.Provider value={{
+      isAuthenticated,
+      user,
+      login,
+      register,
+      logout,
+      logoutAndSaveFavorites // <-- Cambiado aquí
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -93,4 +112,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}

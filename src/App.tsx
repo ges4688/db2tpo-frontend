@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Home from './pages/Home';
 import RecipeCreate from './pages/RecipeCreate';
 import RecipeEdit from './pages/RecipeEdit';
+import Favoritos from './pages/Favoritos';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
             <Route path="/home" element={<Home />} />
             <Route path="/recipe/create" element={<RecipeCreate />} />
             <Route path="/recipe/edit/:id" element={<RecipeEdit />} />
+            <Route path="/favoritos" element={<Favoritos />} />
             <Route path="/" element={<Navigate to="/home" replace />} />
           </Routes>
         </Box>
